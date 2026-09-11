@@ -36,10 +36,29 @@ if [[ -n "$CLASH" ]]; then
   echo "!! Cleaner long-term fix: move the LiDAR to its own subnet (see NOTES.md)."
 fi
 
+# --- Refuse to disturb a live session -----------------------------------
+# Flushing the interface deletes the address that ROS 2's DDS bound its
+# locators to. The driver keeps reading its 0.0.0.0:2368 socket and printing
+# frames, but RViz stops receiving and the point cloud appears to freeze.
+if pgrep -x hesai_ros_drive >/dev/null || pgrep -x rviz2 >/dev/null; then
+  echo "ERROR: the driver and/or RViz are running. Reconfiguring the NIC now" >&2
+  echo "       would freeze the point cloud. Stop them first:" >&2
+  echo "         pkill -9 -x hesai_ros_drive; pkill -9 -x rviz2" >&2
+  echo "       then re-run this script, then run_hesai.sh." >&2
+  exit 1
+fi
+
 # --- Address ------------------------------------------------------------
 ip link set "$IFACE" up
-ip addr flush dev "$IFACE" 2>/dev/null || true
-ip addr add "${HOST_IP}/${PREFIX}" dev "$IFACE"
+# Only flush if the address is not already what we want - flushing is
+# destructive to anything currently bound to it, so make this a no-op on
+# repeat runs.
+if ip -4 addr show dev "$IFACE" | grep -q "inet ${HOST_IP}/${PREFIX}"; then
+  echo "==> $IFACE already has ${HOST_IP}/${PREFIX}; leaving it alone"
+else
+  ip addr flush dev "$IFACE" 2>/dev/null || true
+  ip addr add "${HOST_IP}/${PREFIX}" dev "$IFACE"
+fi
 # /32 wins over any /24 by longest-prefix match, so this beats the Wi-Fi route.
 ip route replace "${LIDAR_IP}/32" dev "$IFACE" src "$HOST_IP"
 

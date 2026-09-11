@@ -78,15 +78,31 @@ cat /sys/class/net/<iface>/statistics/rx_packets
 ## Stop / restart
 
 ```bash
-pkill -f hesai_ros_driver_node; pkill -f rviz2
+pkill -9 -x hesai_ros_drive; pkill -9 -x rviz2
 bash run_hesai.sh
 ```
 
-The driver ignores `SIGTERM` while blocked in its receive loop; use `pkill -9`
-if it lingers. A leftover instance double-publishes `/lidar_points`.
+Match on the exact process name (`-x`), not `-f`. The driver's `comm` is
+truncated to `hesai_ros_drive`, and a `-f` pattern also matches any shell whose
+command line mentions it — `pkill -f hesai_ros_driver_node` can kill your own
+terminal. `-9` is needed because the node ignores `SIGTERM` while blocked in its
+receive loop.
+
+`run_hesai.sh` refuses to start if an instance is already running: two drivers
+both bind UDP 2368 via `SO_REUSEPORT`, both publish to `/lidar_points`, and the
+doubled rate overwhelms RViz.
 
 ## Gotchas
 
+- **Never run `setup_lidar_net.sh` while the visualization is up.** It used to
+  `ip addr flush` the interface, deleting the address ROS 2's DDS had bound its
+  locators to. RViz stops receiving and the cloud freezes, while the driver —
+  whose socket is bound to `0.0.0.0:2368` — keeps reading and printing frames,
+  so it looks like RViz hung for no reason. The script now refuses to run when
+  the driver or RViz is alive, and no longer flushes an already-correct address.
+  `run_hesai.sh` also pins `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` so ROS
+  traffic stays on loopback and is immune to the LiDAR NIC entirely. Set
+  `ROS_DISCOVERY=SUBNET` if you need to view the cloud from another machine.
 - **`setup_lidar_net.sh` is not persistent.** Re-run it after a reboot or replug.
 - **Subnet collision.** The QT64 ships on `192.168.1.x`, which many home LANs
   also use. The script pins a `/32` host route to the wired NIC so Wi-Fi does not
