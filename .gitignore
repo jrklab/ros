@@ -1,0 +1,13 @@
+# colcon build artifacts
+hesai_ws/build/
+hesai_ws/install/
+hesai_ws/log/
+
+# Upstream driver is cloned by build_hesai.sh, not vendored here.
+# It carries its own git history and an SDK submodule.
+hesai_ws/src/HesaiLidar_ROS_2.0/
+
+# local scratch
+*.pcap
+*.bag
+*.log
