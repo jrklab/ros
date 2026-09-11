@@ -6,6 +6,10 @@ build/
 install/
 log/
 
+# python bytecode (ros2 launch compiles launch files in place)
+__pycache__/
+*.py[cod]
+
 # local scratch
 *.pcap
 *.bag
