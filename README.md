@@ -30,7 +30,9 @@ free on `/`.
 - Workspaces live at `<project>/ws/` and are gitignored, along with `build/`,
   `install/` and `log/`.
 - Third-party drivers are cloned by each project's `build.sh` rather than
-  vendored, so upstream history and submodules stay upstream.
+  vendored, so upstream history and submodules stay upstream. Because that clone
+  is gitignored, each project keeps its own config and launch files in-repo and
+  points the driver at them, rather than editing the copy inside the workspace.
 - If a conda install sits ahead of `/usr/bin` in `PATH`, it will poison a colcon
   build. Project scripts strip it themselves — prefer them over a bare
   `colcon build`.

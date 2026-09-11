@@ -59,10 +59,23 @@ RViz2 opens preconfigured: `PointCloud2` on `/lidar_points`, fixed frame
 | Web UI | `http://192.168.1.201` |
 | Topic / frame | `/lidar_points` / `hesai_lidar` |
 
-Config lives in `ws/src/HesaiLidar_ROS_2.0/config/config.yaml`. Stock defaults
-already match a factory QT64 — no edits needed for a first run. The driver pulls
-the per-unit angle-correction file off the sensor over PTC, so no calibration
-file is required. The model is auto-detected; there is no `lidar_type` to set.
+Config is tracked in this repo at [`config/qt64.yaml`](config/qt64.yaml), and
+`run.sh` points the driver at it via the node's `config_path` parameter using
+[`launch/qt64.launch.py`](launch/qt64.launch.py). Upstream's `start.py` instead
+reads the copy inside the driver's installed share directory, which lives in the
+gitignored workspace — edits there are untracked and lost on a re-clone.
+
+Defaults already match a factory QT64, so no edits are needed for a first run.
+The driver pulls the per-unit angle-correction file off the sensor over PTC, so
+no calibration file is required. The model is auto-detected; there is no
+`lidar_type` to set.
+
+`run.sh` passes extra arguments through to the launch file:
+
+```bash
+bash run.sh rviz:=false                    # driver only, no GUI
+bash run.sh config:=/path/to/other.yaml    # a different config
+```
 
 Move the LiDAR to its own subnet (recommended if `192.168.1.x` is already in use)
 via its web UI, then:
@@ -134,6 +147,17 @@ receive loop.
   rosbag/TF work.
 - **No `DISPLAY`.** `run.sh` falls back to `:0`, so it works over SSH when the
   machine has a local desktop session.
+- **`[FATAL] load firetime error` on every start is expected on a QT64, and
+  harmless.** In the SDK's `libhesai/Lidar/lidar.h`, only `ATX` and
+  `PandarQT128` try to fetch firetimes from the sensor before falling back to a
+  file; every other model — including `PandarQT` — calls `LoadFiretimesFile()`
+  unconditionally with no empty-path guard. An empty path fails to open, throws,
+  and is logged as FATAL. No config value silences it: `""` triggers it and so
+  does a bogus path. The handler then sets `get_firetime_file_ = false` and
+  returns, which disables a small per-laser azimuth correction. Point output is
+  otherwise unaffected — verified at 10 Hz with 0 packet loss. Supply a real
+  firetimes CSV from the sensor's web UI if you need that last bit of angular
+  precision.
 
 ## No LiDAR handy?
 

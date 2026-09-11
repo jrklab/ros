@@ -52,6 +52,10 @@ if [[ -z "${DISPLAY:-}" ]]; then
 fi
 
 echo "==> discovery range: $ROS_AUTOMATIC_DISCOVERY_RANGE"
+echo "==> config: $HERE/config/qt64.yaml"
 echo "==> Launching hesai_ros_driver + RViz2 ..."
 echo "    point cloud topic: /lidar_points   frame: hesai_lidar"
-exec ros2 launch hesai_ros_driver start.py
+# Our own launch file, not upstream's start.py, so the driver reads the config
+# tracked in this repo rather than the copy inside the gitignored workspace.
+# Extra args pass through, e.g.  bash run.sh rviz:=false
+exec ros2 launch "$HERE/launch/qt64.launch.py" "$@"
