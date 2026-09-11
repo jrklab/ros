@@ -10,6 +10,7 @@ workspace, so they build and break independently.
 | | |
 |---|---|
 | [`hesai_qt64/`](hesai_qt64/) | Live point cloud from a **Hesai Pandar QT64** LiDAR in RViz2, using Hesai's official driver. |
+| [`livox_mid360/`](livox_mid360/) | Live point cloud from a **Livox Mid360** (mounted on a Unitree G1) in RViz2, using Livox's official SDK + ROS 2 driver. |
 
 ## Shared setup
 
