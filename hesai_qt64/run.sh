@@ -12,9 +12,16 @@ WS="$HERE/ws"
 # while blocked in recv, so use -9. Match the exact process name (-x; comm is
 # truncated to 'hesai_ros_drive') rather than -f: a -f pattern also matches any
 # shell whose command line mentions it, so `pkill -f` can kill your own terminal.
-if pgrep -x hesai_ros_drive >/dev/null; then
+# A defunct (zombie) entry is already dead and holds no socket - pkill can't
+# touch it and it isn't a real second instance, so skip it automatically
+# instead of blocking the launch; it'll be reaped once its parent waits on it.
+live_pids="$(pgrep -x hesai_ros_drive | while read -r pid; do
+  state="$(ps -o stat= -p "$pid" 2>/dev/null | tr -d ' ')" || continue
+  [[ "${state:0:1}" != "Z" ]] && echo "$pid"
+done || true)"
+if [[ -n "$live_pids" ]]; then
   echo "ERROR: a hesai_ros_driver_node is already running:" >&2
-  pgrep -ax hesai_ros_drive | sed 's/^/  /' >&2
+  ps -o pid,stat,cmd -p $live_pids | sed 's/^/  /' >&2
   echo "Stop it first:  pkill -9 -x hesai_ros_drive; pkill -9 -x rviz2" >&2
   exit 1
 fi
