@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# Builds the Hesai ROS 2 driver workspace. Run as your NORMAL user (no sudo).
-#   bash /home/hao/Work/ros/build_hesai.sh
+# Clone (if needed) and build the Hesai ROS 2 driver. Run as a NORMAL user.
+#   bash hesai_qt64/build.sh
 set -euo pipefail
 
-WS="/home/hao/Work/ros/hesai_ws"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WS="$HERE/ws"
 
-# --- Keep miniconda out of the build -------------------------------------
-# This machine has ~/miniconda3 ahead of /usr/bin in PATH. Conda ships its own
-# python3, cmake, and libstdc++/boost/yaml-cpp, and colcon will happily link
-# against them and then fail at runtime (or mid-build) against the ROS ones.
-PATH="$(echo "$PATH" | tr ':' '\n' | grep -v -E 'conda|/home/hao/\.local/bin' | paste -sd: -)"
+# --- Keep conda out of the build -----------------------------------------
+# If a conda install sits ahead of /usr/bin in PATH, colcon picks up conda's
+# python, cmake, Boost and yaml-cpp and links against them, then fails mid-build
+# or produces a binary that breaks at runtime against the ROS ones.
+PATH="$(echo "$PATH" | tr ':' '\n' | grep -v -E 'conda' | paste -sd: -)"
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 unset PYTHONPATH CONDA_PREFIX CONDA_DEFAULT_ENV CONDA_EXE CONDA_PYTHON_EXE || true
 
@@ -32,7 +33,7 @@ fi
 
 # --- Source ROS ----------------------------------------------------------
 if [[ ! -f /opt/ros/jazzy/setup.bash ]]; then
-  echo "ERROR: ROS 2 Jazzy not found. Run install_ros2_hesai.sh first." >&2
+  echo "ERROR: ROS 2 Jazzy not found. Run setup/install_ros2_jazzy.sh first." >&2
   exit 1
 fi
 set +u; source /opt/ros/jazzy/setup.bash; set -u
@@ -45,4 +46,4 @@ colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 echo
 echo "=== BUILD OK ==="
-echo "To run:  bash /home/hao/Work/ros/run_hesai.sh"
+echo "Next:  sudo bash $HERE/setup_net.sh   then   bash $HERE/run.sh"
